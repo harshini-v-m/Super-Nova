@@ -1,8 +1,4 @@
-## Docker file
 
-```
-docker pull adwaid10/mlir-compiler
-```
 ### Documentation : [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AdwaidSuresh123/MlirCompiler)
 
 ----
@@ -30,4 +26,10 @@ cmake -G Ninja ../llvm \
    -DCMAKE_CXX_COMPILER=clang++ \
    -DLLVM_ENABLE_LLD=ON \
    -DLLVM_CCACHE_BUILD=ON \
+```
+**Nova Compiler build**:
+```
+mkdir build
+cd build
+cmake ..
 ```
