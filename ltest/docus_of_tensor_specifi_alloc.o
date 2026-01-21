@@ -1,0 +1,59 @@
+DOCUMENTATION ON TENSOR ALLOCATION DEVICE SPECIFIC 
+
+
+
+The situation is, the theroies which doesn't change is 
+1.The function final return result will always sent to cpu
+2.All the calculation is done in gpu 
+3.The intermediate result should not be sent to cpu 
+4.The function arguments should not be sent to cpu again
+5.The input arguments of the function can in cpu or gpu. for that i added test cases below.
+Check the cases which are 
+1. one input is in cpu and one in gpu 
+2.both in cpu
+3.both in gpu
+What i expect from the results of above cases is 
+1.the input which is stored in cpu must be copied to gpu and 
+the one in gpu doesn't need to do anything
+2.the both input memory needs to be copied to gpu but should not be again copied to  cpu
+3.The results should be caluculated in gpu and copied back to cpu.
+
+Implementation plan stage 1 
+Step 1: Create a nova device atttribute and update the nova_tensor type
+Step 2: update the bufferization options in gpu pipeline to carry along the attributes as memory spaces but as integers
+
+
+IMPLEMENTATION PLAN -stage 2
+More explicit handling of tensor allocation
+Step 1:
+creating new operation ->nova.to_device  (host to device and device to host)
+
+step 2:
+update of common canonicalizer  pattern for all ops like below-> (nova.todevice ,i expect it to act like a broadcast)
+  1.for function arguments the tensor can be in cpu or gpu , if it is cpu(nova.device attribute is 0 then canonicalizer have to create a to_device operation and change the attribute of following that tensor)
+  2.To return type it will be always in cpu, but the result will be in gpu ,so we need to add the nova.todvice to it
+  3.For operations the operand must be in gpu if not then create the nova.todevice operation.
+Note:Also check whether that operand is already copied back so there are no redendant copies
+
+Step 3:
+creating lowering pass of nova.todevice 
+1.lower it to gneric 
+2.make sure of these thing 
+-> it is lowering to tensor.cast with attributes
+->after bufferizing it the attribute are there either as string or int
+->memref allocop,deallocop,copyop are there with integer values of the device information 1 or 0
+Step 4:
+memref to gpu 
+1.Operations allocop,deallocop,copyop in memref dialect with memoryspace 1(integer attribute) rewrriten as gpu dialect allocop,deallocop,memcpy op for correct synchorous implementation 
+Expected final result to be : 
+Correctly convert all tensors with device=0 to device=1 as needed
+Maintain proper synchronization between CPU and GPU operations
+Allow the compiler to optimize device transfers
+Provide clear and predictable behavior for all device transfer scenarios
+
+First time results : 
+The common problem is The intermediate result is copying the back to cpu which ic unnessary
+And the other fails i attached above
+
+Second time results : 
+No matter the inputs are from cpu or gpu if that operation result is not in return of that function the ouput should be stored in gpu and its 
